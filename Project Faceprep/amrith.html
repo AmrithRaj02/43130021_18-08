@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Personal Tracker</title>
+  <style>
+    :root {
+      --primary-color: #735b5b; /* Red base */
+      --secondary-color: #8b4d3a; /* Soft coral accent */
+      --background-color: #e8a6a6; /* Warm beige background */
+      --card-bg: #fff8ef; /* Light cream for cards */
+      --column-bg: #f0e8e3; /* Slight contrast for columns */
+      --text-color: #2c2c2c;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: var(--background-color);
+      color: var(--text-color);
+    }
+
+    header {
+      background-color: var(--primary-color);
+      color: var(--card-bg);
+      padding: 20px;
+      text-align: center;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+    }
+
+    main {
+      padding: 25px;
+      max-width: 1200px;
+      margin: auto;
+    }
+
+    .task-form-container {
+      background-color: var(--card-bg);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 25px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    #taskForm {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    #taskForm input[type="text"], #taskForm textarea {
+      padding: 12px;
+      border: 1px solid #bbb;
+      border-radius: 5px;
+      font-size: 16px;
+      transition: border-color 0.3s;
+    }
+
+    #taskForm input:focus, #taskForm textarea:focus {
+      border-color: var(--primary-color);
+      outline: none;
+    }
+
+    #taskForm button {
+      background-color: var(--secondary-color);
+      color: var(--card-bg);
+      border: none;
+      border-radius: 5px;
+      padding: 10px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background-color 0.3s, transform 0.2s;
+    }
+
+    #taskForm button:hover {
+      background-color: #ff7043;
+      transform: translateY(-1px);
+    }
+
+    .kanban-board {
+      display: flex;
+      gap: 20px;
+      overflow-x: auto;
+      padding-bottom: 10px;
+    }
+
+    .column {
+      flex: 1;
+      min-width: 280px;
+      background-color: var(--column-bg);
+      border-radius: 8px;
+      padding: 15px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      transition: box-shadow 0.3s;
+    }
+
+    .column:hover {
+      box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+    }
+
+    .column-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      border-bottom: 2px solid var(--primary-color);
+      padding-bottom: 4px;
+    }
+
+    .column-header h2 {
+      margin: 0;
+      font-size: 1.4em;
+      color: var(--primary-color);
+    }
+
+    .task-count {
+      background-color: var(--secondary-color);
+      color: var(--card-bg);
+      border-radius: 50%;
+      padding: 5px 9px;
+      font-weight: 600;
+      font-size: 0.9em;
+    }
+
+    .task-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .task-card {
+      background-color: var(--card-bg);
+      padding: 15px;
+      border-radius: 6px;
+      border-left: 5px solid var(--primary-color);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      cursor: grab;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .task-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 10px rgba(0,0,0,0.15);
+    }
+
+    .task-card h3 {
+      margin: 0 0 5px 0;
+      font-size: 1.1em;
+      color: var(--primary-color);
+    }
+
+    .task-card p {
+      margin: 0;
+      font-size: 0.9em;
+      color: #4f4f4f;
+      white-space: pre-wrap;
+    }
+
+    .delete-btn {
+      float: right;
+      background-color: var(--primary-color);
+      color: var(--card-bg);
+      border: none;
+      border-radius: 5px;
+      font-size: 0.8em;
+      padding: 5px 10px;
+      margin-top: 8px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    .delete-btn:hover {
+      background-color: #b71c1c;
+    }
+
+    .dragging {
+      opacity: 0.7;
+      transform: scale(0.97);
+    }
+
+    @media (max-width: 900px) {
+      .kanban-board {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>My personalTracker</h1>
+  </header>
+  <main>
+    <div class="task-form-container">
+      <h2>Create a Task</h2>
+      <form id="taskForm">
+        <input type="text" id="taskTitle" placeholder="Task title" required>
+        <textarea id="taskDescription" placeholder="Short description (optional)"></textarea>
+        <button type="submit">Add Task</button>
+      </form>
+    </div>
+
+    <section class="kanban-board">
+      <div class="column" id="todo-column" data-status="todo" ondragover="allowDrop(event)" ondrop="drop(event)">
+        <div class="column-header">
+          <h2>To Do</h2>
+          <span class="task-count" id="todo-count">0</span>
+        </div>
+        <div class="task-list" id="todo-list"></div>
+      </div>
+
+      <div class="column" id="in-progress-column" data-status="in-progress" ondragover="allowDrop(event)" ondrop="drop(event)">
+        <div class="column-header">
+          <h2>In Progress</h2>
+          <span class="task-count" id="in-progress-count">0</span>
+        </div>
+        <div class="task-list" id="in-progress-list"></div>
+      </div>
+
+      <div class="column" id="completed-column" data-status="completed" ondragover="allowDrop(event)" ondrop="drop(event)">
+        <div class="column-header">
+          <h2>Completed</h2>
+          <span class="task-count" id="completed-count">0</span>
+        </div>
+        <div class="task-list" id="completed-list"></div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const form = document.getElementById('taskForm');
+    const lists = {
+      todo: document.getElementById('todo-list'),
+      'in-progress': document.getElementById('in-progress-list'),
+      completed: document.getElementById('completed-list')
+    };
+
+    let tasks = JSON.parse(localStorage.getItem('kanbanTasks')) || [];
+    renderTasks();
+
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const title = document.getElementById('taskTitle').value.trim();
+      const description = document.getElementById('taskDescription').value.trim();
+
+      if (!title) return;
+
+      const newTask = {
+        id: Date.now().toString(),
+        title,
+        description,
+        status: 'todo'
+      };
+
+      tasks.push(newTask);
+      saveAndRender();
+      form.reset();
+    });
+
+    function createCard(task) {
+      const card = document.createElement('div');
+      card.className = 'task-card';
+      card.setAttribute('draggable', true);
+      card.dataset.id = task.id;
+      card.innerHTML = `
+        <h3>${task.title}</h3>
+        <p>${task.description || 'No description.'}</p>
+        <button class="delete-btn" data-id="${task.id}">Delete</button>
+      `;
+      card.querySelector('.delete-btn').addEventListener('click', deleteTask);
+      card.addEventListener('dragstart', dragStart);
+      card.addEventListener('dragend', dragEnd);
+      return card;
+    }
+
+    function renderTasks() {
+      Object.values(lists).forEach(list => list.innerHTML = '');
+      tasks.forEach(task => lists[task.status].appendChild(createCard(task)));
+      updateCounts();
+    }
+
+    function saveAndRender() {
+      localStorage.setItem('kanbanTasks', JSON.stringify(tasks));
+      renderTasks();
+    }
+
+    function deleteTask(e) {
+      const id = e.target.dataset.id;
+      tasks = tasks.filter(t => t.id !== id);
+      saveAndRender();
+    }
+
+    function updateCounts() {
+      document.getElementById('todo-count').textContent = tasks.filter(t => t.status === 'todo').length;
+      document.getElementById('in-progress-count').textContent = tasks.filter(t => t.status === 'in-progress').length;
+      document.getElementById('completed-count').textContent = tasks.filter(t => t.status === 'completed').length;
+    }
+
+    function dragStart(e) {
+      e.dataTransfer.setData('text/plain', e.target.dataset.id);
+      e.target.classList.add('dragging');
+    }
+
+    function dragEnd(e) {
+      e.target.classList.remove('dragging');
+    }
+
+    function allowDrop(e) {
+      e.preventDefault();
+    }
+
+    function drop(e) {
+      e.preventDefault();
+      const id = e.dataTransfer.getData('text/plain');
+      const newStatus = e.currentTarget.dataset.status;
+      const task = tasks.find(t => t.id === id);
+      if (task) {
+        task.status = newStatus;
+        saveAndRender();
+      }
+    }
+  </script>
+</body>
+</html>

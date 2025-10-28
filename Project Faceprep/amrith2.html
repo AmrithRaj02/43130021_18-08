@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simple Inventory Management</title>
+  <style>
+    :root {
+      --primary-color: #b39f9f;
+      --secondary-color: #674439;
+      --background: #f5f2eb;
+      --table-bg: #90652c;
+      --row-alt: #f9f3ee;
+      --text-color: #000000;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: var(--background);
+      color: var(--text-color);
+    }
+
+    header {
+      background-color: var(--primary-color);
+      color: white;
+      text-align: center;
+      padding: 15px 0;
+      font-size: 1.5em;
+      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+    }
+
+    main {
+      padding: 30px;
+      max-width: 900px;
+      margin: auto;
+    }
+
+    .form-container {
+      background-color: var(--table-bg);
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      margin-bottom: 25px;
+    }
+
+    .form-container h2 {
+      margin-top: 0;
+      color: var(--primary-color);
+      font-size: 1.3em;
+    }
+
+    form {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    form input {
+      flex: 1 1 30%;
+      padding: 10px;
+      border: 1px solid #bbb;
+      border-radius: 5px;
+      font-size: 16px;
+      transition: border-color 0.3s;
+    }
+
+    form input:focus {
+      border-color: var(--primary-color);
+      outline: none;
+    }
+
+    form button {
+      background-color: var(--secondary-color);
+      border: none;
+      padding: 10px 15px;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background-color 0.2s;
+    }
+
+    form button:hover {
+      background-color: #628744;
+    }
+
+    .search-box {
+      margin: 15px 0;
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .search-box input {
+      padding: 8px;
+      width: 250px;
+      border-radius: 5px;
+      border: 1px solid #bbb;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background-color: var(--table-bg);
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+
+    th {
+      background-color: var(--primary-color);
+      color: white;
+    }
+
+    tr:nth-child(even) {
+      background-color: var(--row-alt);
+    }
+
+    .action-btn {
+      border: none;
+      padding: 6px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      color: white;
+      margin-right: 5px;
+      transition: opacity 0.2s;
+    }
+
+    .edit-btn {
+      background-color: #1b3265;
+    }
+
+    .delete-btn {
+      background-color: #d32f2f;
+    }
+
+    .action-btn:hover {
+      opacity: 0.8;
+    }
+
+    @media (max-width: 700px) {
+      form input {
+        flex: 1 1 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>Management System</header>
+
+  <main>
+    <div class="form-container">
+      <h2>Add / Edit Product</h2>
+      <form id="productForm">
+        <input type="text" id="productName" placeholder="Product Name" required>
+        <input type="number" id="productQty" placeholder="Quantity" min="1" required>
+        <input type="number" id="productPrice" placeholder="Price" min="0" step="0.01" required>
+        <button type="submit">Save Product</button>
+      </form>
+    </div>
+
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="Search product by name...">
+    </div>
+
+    <table id="inventoryTable">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Quantity</th>
+          <th>Price</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </main>
+  <script>
+    const form = document.getElementById('productForm');
+    const nameInput = document.getElementById('productName');
+    const qtyInput = document.getElementById('productQty');
+    const priceInput = document.getElementById('productPrice');
+    const tableBody = document.querySelector('#inventoryTable tbody');
+    const searchInput = document.getElementById('searchInput');
+    let products = JSON.parse(localStorage.getItem('shopInventory')) || [];
+    let editId = null;
+    renderTable();
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const name = nameInput.value.trim();
+      const qty = parseInt(qtyInput.value);
+      const price = parseFloat(priceInput.value).toFixed(2);
+
+      if (!name || qty <= 0 || price < 0) return;
+
+      if (editId) {
+        const index = products.findIndex(p => p.id === editId);
+        products[index] = { id: editId, name, qty, price };
+        editId = null;
+      } else {
+        const newProduct = { id: Date.now().toString(), name, qty, price };
+        products.push(newProduct);
+      }
+      saveAndRender();
+      form.reset();
+    });
+    function renderTable() {
+      tableBody.innerHTML = '';
+      products.forEach(p => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${p.name}</td>
+          <td>${p.qty}</td>
+          <td>${p.price}</td>
+          <td>
+            <button class="action-btn edit-btn" onclick="editProduct('${p.id}')">Edit</button>
+            <button class="action-btn delete-btn" onclick="deleteProduct('${p.id}')">Delete</button>
+          </td>
+        `;
+        tableBody.appendChild(row);
+      });
+    }
+    function saveAndRender() {
+      localStorage.setItem('shopInventory', JSON.stringify(products));
+      renderTable();
+    }
+    function editProduct(id) {
+      const product = products.find(p => p.id === id);
+      nameInput.value = product.name;
+      qtyInput.value = product.qty;
+      priceInput.value = product.price;
+      editId = id;
+    }
+    function deleteProduct(id) {
+      products = products.filter(p => p.id !== id);
+      saveAndRender();
+    }
+    searchInput.addEventListener('input', e => {
+      const searchTerm = e.target.value.toLowerCase();
+      Array.from(tableBody.rows).forEach(row => {
+        const nameCell = row.cells[0].textContent.toLowerCase();
+        row.style.display = nameCell.includes(searchTerm) ? '' : 'none';
+      });
+    });
+  </script>
+</body>
+</html>
